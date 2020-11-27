@@ -50,6 +50,14 @@ public interface IKeyValueStoreService<K, V, Exc extends Exception> {
 
 	void setRange(Map<INode<K>, IRange<K>> ranges) throws Exc;
 
+	/**
+	 * Hinted Handoff.<br>
+	 * Returns the 
+	 * 
+	 * @param node
+	 * @return
+	 * @throws Exc
+	 */
 	Map<K, V> getMissedUpdates(INode<K> node) throws Exc;
 
 }

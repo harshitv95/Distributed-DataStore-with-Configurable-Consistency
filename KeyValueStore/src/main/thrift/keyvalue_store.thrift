@@ -17,11 +17,6 @@ struct Node {
   3: i32 port;
 }
 
-struct Range {
-  1: i32 start;
-  2: i32 end;
-}
-
 enum ConsistencyLevel {
     ONE,
     QUORUM
@@ -40,8 +35,6 @@ service KeyValueStore {
 
   void write(1: int key, 2: Value value)
     throws (1: SystemException systemException),
-
-  void setRange(1: map<Node, Range> nodes),
 
   map<int, Value> getMissedWrites(1: Node node),
 
