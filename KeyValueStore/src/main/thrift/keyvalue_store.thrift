@@ -24,18 +24,18 @@ enum ConsistencyLevel {
 
 service KeyValueStore {
 
-  string get(1: int key, 2: ConsistencyLevel level)
+  string get(1: i32 key, 2: ConsistencyLevel level)
     throws (1: SystemException systemException),
 
-  void put(1: int key, 2: string value, 3: ConsistencyLevel level)
+  void put(1: i32 key, 2: string value, 3: ConsistencyLevel level)
     throws (1: SystemException systemException),
 
-  Value read(1: int key)
+  Value read(1: i32 key)
     throws (1: SystemException systemException),
 
-  void write(1: int key, 2: Value value)
+  void write(1: i32 key, 2: Value value)
     throws (1: SystemException systemException),
 
-  map<int, Value> getMissedWrites(1: Node node),
+  map<i32, Value> getMissedWrites(1: Node node),
 
 }
