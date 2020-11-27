@@ -12,9 +12,8 @@ struct Value {
 }
 
 struct Node {
-  1: string id;
-  2: string ip;
-  3: i32 port;
+  1: string ip;
+  2: i32 port;
 }
 
 enum ConsistencyLevel {
