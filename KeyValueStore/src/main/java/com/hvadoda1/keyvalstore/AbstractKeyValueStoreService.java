@@ -75,6 +75,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	public V get(K key, Con level) throws Exc {
 		Objects.requireNonNull(key, "Key was null, cannot GET");
 		Objects.requireNonNull(level, "Consistency level was null, cannot GET value mapped to key [" + key + "]");
+
 		int replicaCount = Math.min(level.numReplicas(), Config.getMaxNumReplicas());
 		if (replicaCount <= 0)
 			throw createException("Consistency Level [" + level + "] was not configured correctly");
@@ -98,8 +99,23 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 
 	@Override
 	public void put(K key, V value, Con level) throws Exc {
-		Objects.requireNonNull(key, "Key was null, cannot GET");
-		Objects.requireNonNull(level, "Consistency level was null, cannot GET value mapped to key [" + key + "]");
+		Objects.requireNonNull(key, "Key was null, cannot PUT");
+		Objects.requireNonNull(value, "Value was null, cannot PUT");
+		Objects.requireNonNull(level, "Consistency level was null, cannot PUT value mapped to key [" + key + "]");
+
+		int replicaCount = Math.min(level.numReplicas(), Config.getMaxNumReplicas());
+		if (replicaCount <= 0)
+			throw createException("Consistency Level [" + level + "] was not configured correctly");
+	}
+
+	protected void writeToReplicas(K key, V value, int numReplicas) throws Exc {
+		Val valueWrpr = createValue(value);
+		int idx = partitioner.indexOfResponsibleNode(key);
+		while (numReplicas-- > 0) {
+			++idx;
+			idx %= nodes.size();
+			this.connection.getClient(nodes.get(idx)).write(key, valueWrpr);
+		}
 	}
 
 	@Override
@@ -142,5 +158,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected abstract IPartitioner<K> createPartitioner();
 
 	protected abstract IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> createConnection();
+
+	protected abstract Val createValue(V value);
 
 }
