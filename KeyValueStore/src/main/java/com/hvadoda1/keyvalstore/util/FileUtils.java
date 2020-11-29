@@ -3,9 +3,13 @@ package com.hvadoda1.keyvalstore.util;
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.util.Objects;
 
@@ -58,5 +62,36 @@ public class FileUtils {
 		}
 		if (deleteFolder)
 			folder.delete();
+	}
+
+	public static BufferedReader fileReader(File file) throws FileNotFoundException {
+		return new BufferedReader(new InputStreamReader(new FileInputStream(file)));
+	}
+
+	public static FileWriter fileAppender(File file) throws IOException {
+		return new FileWriter(file);
+	}
+
+	public static void deleteFile(File file) throws IOException {
+		String message = null;
+		if (!file.isFile())
+			message = "Invalid file. [" + file.getAbsoluteFile() + "] is not a file";
+		else if (!file.canWrite())
+			message = "Cannot write to file [" + file.getAbsolutePath() + "], permission denied";
+		else if (file.exists())
+			file.delete();
+
+		if (message != null)
+			throw new IOException(message);
+	}
+
+	public static void renameFile(File file, String newName) throws IOException {
+		if (file.getName().equals(newName))
+			return;
+		File newFile = new File(newName);
+		if (newFile.exists() && newFile.isFile())
+			throw new IOException("File [" + newName + "] already exists");
+		if (!file.renameTo(newFile))
+			throw new IOException("Failed to rename");
 	}
 }

@@ -1,8 +1,8 @@
 package com.hvadoda1.keyvalstore;
 
-import java.util.Map;
+import com.hvadoda1.keyvalstore.rpc.thrift.generated.ConsistencyLevel;
 
-public interface IKeyValueStoreService<K, V, Exc extends Exception> {
+public interface IKeyValueStoreService<K, V, N extends INode, Val extends IValue<V>, Con extends IConsistencyLevel, Exc extends Exception> {
 
 	/**
 	 * <b>PUBLIC API, to be used by clients.</b> <br>
@@ -18,7 +18,7 @@ public interface IKeyValueStoreService<K, V, Exc extends Exception> {
 	 * @return Value mapped to the key based on consistency-level
 	 * @throws Exc
 	 */
-	V get(K key, ConsistencyLevel level) throws Exc;
+	V get(K key, Con level) throws Exc;
 
 	/**
 	 * <b>PUBLIC API, to be used by clients.</b> <br>
@@ -36,28 +36,6 @@ public interface IKeyValueStoreService<K, V, Exc extends Exception> {
 	 * @return Value mapped to the key based on consistency-level
 	 * @throws Exc
 	 */
-	void put(K key, V value, ConsistencyLevel level) throws Exc;
-
-	/**
-	 * @param key
-	 * @return Value mapped to provided {@code key} if the mapping exists in the
-	 *         current Node
-	 * @throws Exc if mapping is not found in current Node
-	 */
-	IValue<V> read(K key) throws Exc;
-
-	void write(K key, V value) throws Exc;
-
-	void setRange(Map<INode<K>, IRange<K>> ranges) throws Exc;
-
-	/**
-	 * Hinted Handoff.<br>
-	 * Returns the 
-	 * 
-	 * @param node
-	 * @return
-	 * @throws Exc
-	 */
-	Map<K, V> getMissedUpdates(INode<K> node) throws Exc;
+	void put(K key, V value, Con level) throws Exc;
 
 }

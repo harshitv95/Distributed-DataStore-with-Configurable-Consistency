@@ -2,10 +2,10 @@ package com.hvadoda1.keyvalstore;
 
 import java.util.Map;
 
-public interface IHintedHandoffs<K, V> {
+public interface IHintedHandoffs<K, V, Val extends IValue<V>, N extends INode> {
 
-	void saveMissedWrite(INode<K> node, K key, IValue<V> value);
+	void saveMissedWrite(N node, K key, Val value);
 
-	Map<K, IValue<V>> getMissedWrites(INode<K> node);
+	Map<K, Val> getMissedWrites(N node);
 
 }

@@ -12,13 +12,13 @@ public class KeyValueStore {
 
   public interface Iface {
 
-    public java.lang.String get(int key, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException;
+    public java.lang.String get(Integer key, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException;
 
-    public void put(int key, java.lang.String value, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException;
+    public void put(Integer key, java.lang.String value, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException;
 
-    public Value read(int key) throws SystemException, org.apache.thrift.TException;
+    public Value read(Integer key) throws SystemException, org.apache.thrift.TException;
 
-    public void write(int key, Value value) throws SystemException, org.apache.thrift.TException;
+    public void write(Integer key, Value value) throws SystemException, org.apache.thrift.TException;
 
     public java.util.Map<java.lang.Integer,Value> getMissedWrites(Node node) throws org.apache.thrift.TException;
 
@@ -58,7 +58,7 @@ public class KeyValueStore {
       super(iprot, oprot);
     }
 
-    public java.lang.String get(int key, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException
+    public java.lang.String get(Integer key, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException
     {
       send_get(key, level);
       return recv_get();
@@ -85,7 +85,7 @@ public class KeyValueStore {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "get failed: unknown result");
     }
 
-    public void put(int key, java.lang.String value, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException
+    public void put(Integer key, java.lang.String value, ConsistencyLevel level) throws SystemException, org.apache.thrift.TException
     {
       send_put(key, value, level);
       recv_put();
@@ -110,7 +110,7 @@ public class KeyValueStore {
       return;
     }
 
-    public Value read(int key) throws SystemException, org.apache.thrift.TException
+    public Value read(Integer key) throws SystemException, org.apache.thrift.TException
     {
       send_read(key);
       return recv_read();
@@ -136,7 +136,7 @@ public class KeyValueStore {
       throw new org.apache.thrift.TApplicationException(org.apache.thrift.TApplicationException.MISSING_RESULT, "read failed: unknown result");
     }
 
-    public void write(int key, Value value) throws SystemException, org.apache.thrift.TException
+    public void write(Integer key, Value value) throws SystemException, org.apache.thrift.TException
     {
       send_write(key, value);
       recv_write();

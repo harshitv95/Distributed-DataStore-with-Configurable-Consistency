@@ -1,37 +1,34 @@
 package com.hvadoda1.keyvalstore.util.partitioning;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import com.hvadoda1.keyvalstore.INode;
-
-import static com.hvadoda1.keyvalstore.util.NodeUtils.nodeAddress;
-
 public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 
 	private final int keyMin, keyMax;
-	private final List<INode<Integer>> nodes;
+//	private final List<N> nodes;
 	private final int startKeys[];
 
-	public IntegerByteOrderParitioner(int keyMin, int keyMax, List<INode<Integer>> nodes) {
+	public IntegerByteOrderParitioner(int keyMin, int keyMax, int numNodes/*, List<N> nodes*/) {
 		this.keyMin = keyMin;
 		this.keyMax = keyMax;
-		this.nodes = new ArrayList<INode<Integer>>(nodes);
-		Collections.sort(this.nodes, (node1, node2) -> nodeAddress(node1).compareTo(nodeAddress(node2)));
-		this.startKeys = new int[nodes.size()];
-		int incFactor = (keyMax - keyMin) / nodes.size();
+//		this.nodes = new ArrayList<>(nodes);
+//		Collections.sort(this.nodes, (node1, node2) -> nodeAddress(node1).compareTo(nodeAddress(node2)));
+		this.startKeys = new int[numNodes];
+		int incFactor = (keyMax - keyMin) / numNodes;
 		for (int i = 0; i < keyMax; i++) {
 			startKeys[i] = keyMin + (i * incFactor);
 		}
 	}
 
+//	@Override
+//	public N getResponsibleNode(Integer key) {
+//		int idx = indexOfNode(key);
+//		if (idx == -1 || idx >= nodes.size())
+//			return null;
+//		return nodes.get(idx);
+//	}
+
 	@Override
-	public INode<Integer> getResponsibleNode(Integer key) {
-		int idx = indexOfNode(key);
-		if (idx == -1 || idx >= nodes.size())
-			return null;
-		return nodes.get(idx);
+	public int indexOfResponsibleNode(Integer key) {
+		return indexOfNode(key);
 	}
 
 	protected int indexOfNode(int key) {

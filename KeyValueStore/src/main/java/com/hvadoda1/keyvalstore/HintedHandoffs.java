@@ -1,16 +1,16 @@
 package com.hvadoda1.keyvalstore;
 
+import static com.hvadoda1.keyvalstore.util.ValueUtils.shouldOverwrite;
+
 import java.util.HashMap;
 import java.util.Map;
 
-import static com.hvadoda1.keyvalstore.util.ValueUtils.shouldOverwrite;
+public class HintedHandoffs<K, V, Val extends IValue<V>, N extends INode> implements IHintedHandoffs<K, V, Val, N> {
 
-public class AbstractHintedHandoffs<K, V> implements IHintedHandoffs<K, V> {
-
-	protected final Map<INode<K>, Map<K, IValue<V>>> missedWrites = new HashMap<>();
+	protected final Map<INode, Map<K, Val>> missedWrites = new HashMap<>();
 
 	@Override
-	public void saveMissedWrite(INode<K> node, K key, IValue<V> value) {
+	public void saveMissedWrite(N node, K key, Val value) {
 		if (!missedWrites.containsKey(node))
 			missedWrites.put(node, new HashMap<>());
 		if (!missedWrites.get(node).containsKey(key) || shouldOverwrite(missedWrites.get(node).get(key), value))
@@ -18,7 +18,7 @@ public class AbstractHintedHandoffs<K, V> implements IHintedHandoffs<K, V> {
 	}
 
 	@Override
-	public Map<K, IValue<V>> getMissedWrites(INode<K> node) {
+	public Map<K, Val> getMissedWrites(N node) {
 		return !missedWrites.containsKey(node) ? null : missedWrites.get(node);
 	}
 
