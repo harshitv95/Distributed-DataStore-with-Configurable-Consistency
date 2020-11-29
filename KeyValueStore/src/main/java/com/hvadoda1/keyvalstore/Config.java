@@ -11,18 +11,24 @@ public class Config {
 		return USR_DIR + fullHostAddr + File.separatorChar;
 	}
 
-	protected static int numReplicas = 3;
+	protected static int numWriteReplicas = 3;
+	protected static int numReadReplicas = 2;
+
 	protected static Config instance;
 
 	Config(Map<String, String> params) {
 		if (instance != null)
 			throw new RuntimeException("Config already initialized");
-		numReplicas = Integer.parseInt(params.getOrDefault("replicas", "3"));
+		numWriteReplicas = Integer.parseInt(params.getOrDefault("replicas", "3"));
 		instance = this;
 	}
 
-	public static int getMaxNumReplicas() {
-		return numReplicas;
+	public static int getMaxNumWriteReplicas() {
+		return numWriteReplicas;
+	}
+
+	public static int getMaxNumReadReplicas() {
+		return numReadReplicas;
 	}
 
 }

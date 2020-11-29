@@ -33,7 +33,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected List<N> nodes;
 	protected final IPartitioner<K> partitioner;
 
-	protected final IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> connection;
+	protected final Map<N, IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> connCache = new HashMap<>();
 
 	protected final FileWriter writeAheadLogger;
 
@@ -42,7 +42,6 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		this.backupFilename = Config.backupsDir(nodeAddress(node)) + "keyvalstore.bak";
 		this.tempBackupFilename = Config.backupsDir(nodeAddress(node)) + "keyvalstore.temp.bak";
 
-		this.connection = createConnection();
 		this.partitioner = createPartitioner();
 		this.serializer = SerializerFactory.getSimpleSerializer();
 
@@ -76,7 +75,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		Objects.requireNonNull(key, "Key was null, cannot GET");
 		Objects.requireNonNull(level, "Consistency level was null, cannot GET value mapped to key [" + key + "]");
 
-		int replicaCount = Math.min(level.numReplicas(), Config.getMaxNumReplicas());
+		int replicaCount = Math.min(level.numReadReplicas(), Config.getMaxNumReadReplicas());
 		if (replicaCount <= 0)
 			throw createException("Consistency Level [" + level + "] was not configured correctly");
 
@@ -85,12 +84,12 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 
 	protected V readFromReplicas(K key, int numReplicas) throws Exc {
 		int idx = partitioner.indexOfResponsibleNode(key);
-		Val v = this.connection.getClient(nodes.get(idx)).read(key);
+		Val v = this.getClientConnection(nodes.get(idx)).read(key);
 		Val v1;
 		while (numReplicas-- > 1) {
 			++idx;
 			idx %= nodes.size();
-			v1 = this.connection.getClient(nodes.get(idx)).read(key);
+			v1 = this.getClientConnection(nodes.get(idx)).read(key);
 			if (shouldOverwrite(v, v1))
 				v = v1;
 		}
@@ -103,7 +102,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		Objects.requireNonNull(value, "Value was null, cannot PUT");
 		Objects.requireNonNull(level, "Consistency level was null, cannot PUT value mapped to key [" + key + "]");
 
-		int replicaCount = Math.min(level.numReplicas(), Config.getMaxNumReplicas());
+		int replicaCount = Math.min(level.numWriteReplicas(), Config.getMaxNumWriteReplicas());
 		if (replicaCount <= 0)
 			throw createException("Consistency Level [" + level + "] was not configured correctly");
 	}
@@ -114,7 +113,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		while (numReplicas-- > 0) {
 			++idx;
 			idx %= nodes.size();
-			this.connection.getClient(nodes.get(idx)).write(key, valueWrpr);
+			this.getClientConnection(nodes.get(idx)).write(key, valueWrpr);
 		}
 	}
 
@@ -151,13 +150,21 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		this.nodes = nodes;
 	}
 
+	protected IKeyValueStoreClient<K, V, N, Val, Con, Exc> getClientConnection(N node) {
+		if (node.equals(this.node))
+			return this;
+		if (!connCache.containsKey(node))
+			connCache.put(node, createConnection(node));
+		return connCache.get(node).getClient();
+	}
+
 	protected abstract Exc createException(String message);
 
 	protected abstract Exc createException(String message, Exception cause);
 
 	protected abstract IPartitioner<K> createPartitioner();
 
-	protected abstract IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> createConnection();
+	protected abstract IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> createConnection(N node);
 
 	protected abstract Val createValue(V value);
 
