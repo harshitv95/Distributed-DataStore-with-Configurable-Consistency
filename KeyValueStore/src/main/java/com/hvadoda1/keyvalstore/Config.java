@@ -7,8 +7,8 @@ public class Config {
 
 	public final static String USR_DIR = System.getProperty("user.dir") + File.separatorChar;
 
-	public static String backupsDir(String fullHostAddr) {
-		return USR_DIR + fullHostAddr + File.separatorChar;
+	public static String backupsDir(INode node) {
+		return USR_DIR + node.getIp() + File.separatorChar + node.getPort() + File.separatorChar;
 	}
 
 	protected static int numWriteReplicas = 3;

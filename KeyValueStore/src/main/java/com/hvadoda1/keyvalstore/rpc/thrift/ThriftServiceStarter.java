@@ -10,19 +10,15 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportException;
 
-import com.hvadoda1.keyvalstore.IKeyValueStoreServiceStarter;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.KeyValueStore;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Node;
+import com.hvadoda1.keyvalstore.starter.IKeyValueStoreServiceStarter;
 
 public class ThriftServiceStarter
 		implements IKeyValueStoreServiceStarter<Node, TException, KeyValueStoreServiceThrift> {
 
 	protected KeyValueStore.Processor<KeyValueStoreServiceThrift> processor;
 
-//	public ThriftServerController(int port) throws TException {
-//		this.port = port;
-//		this.processor = new FileStore.Processor<ThriftServer>(createServerHandler());
-//	}
 	@Override
 	public void start(int port) throws TException {
 		try {
@@ -31,6 +27,9 @@ public class ThriftServiceStarter
 			server.serve();
 		} catch (TTransportException e) {
 			e.printStackTrace();
+		} catch (TException e) {
+			e.printStackTrace();
+			System.err.println("Caught T Exception");
 		}
 	}
 
@@ -47,14 +46,6 @@ public class ThriftServiceStarter
 	}
 
 	protected TServerTransport getTransport(int port) throws TTransportException {
-//		TSSLTransportParameters params = new TSSLTransportParameters();
-//		params.setKeyStore(
-//					ThriftConfig.getKeyStorePath(),
-//					ThriftConfig.getKeyStorePassword(),
-//					ThriftConfig.getKeyStoreManager(),
-//					ThriftConfig.getKeyStoreType()
-//				);
-//		return TSSLTransportFactory.getServerSocket(port, 0, null, params);
 		return new TServerSocket(port);
 	}
 

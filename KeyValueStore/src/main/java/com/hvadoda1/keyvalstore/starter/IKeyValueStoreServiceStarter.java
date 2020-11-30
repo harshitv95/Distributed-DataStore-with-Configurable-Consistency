@@ -1,4 +1,7 @@
-package com.hvadoda1.keyvalstore;
+package com.hvadoda1.keyvalstore.starter;
+
+import com.hvadoda1.keyvalstore.IKeyValueStoreServer;
+import com.hvadoda1.keyvalstore.INode;
 
 public interface IKeyValueStoreServiceStarter<N extends INode, Exc extends Exception, Serv extends IKeyValueStoreServer<?, ?, N, ?, ?, Exc>> {
 

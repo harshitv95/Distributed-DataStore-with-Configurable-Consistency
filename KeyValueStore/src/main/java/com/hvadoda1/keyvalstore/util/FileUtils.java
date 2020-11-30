@@ -69,6 +69,10 @@ public class FileUtils {
 	}
 
 	public static FileWriter fileAppender(File file) throws IOException {
+		if (!file.exists()) {
+			file.getParentFile().mkdirs();
+			file.createNewFile();
+		}
 		return new FileWriter(file);
 	}
 

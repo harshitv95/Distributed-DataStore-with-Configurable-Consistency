@@ -1,6 +1,5 @@
 package com.hvadoda1.keyvalstore;
 
-import static com.hvadoda1.keyvalstore.util.NodeUtils.nodeAddress;
 import static com.hvadoda1.keyvalstore.util.ValueUtils.shouldOverwrite;
 
 import java.io.BufferedReader;
@@ -31,23 +30,27 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected final IHintedHandoffs<K, V, Val, N> missedWrites = new HintedHandoffs<>();
 
 	protected List<N> nodes;
-	protected final IPartitioner<K> partitioner;
+	protected IPartitioner<K> partitioner;
 
 	protected final Map<N, IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> connCache = new HashMap<>();
 
 	protected final FileWriter writeAheadLogger;
 
-	public AbstractKeyValueStoreService(N node) throws IOException {
+	public AbstractKeyValueStoreService(N node) {
 		this.node = node;
-		this.backupFilename = Config.backupsDir(nodeAddress(node)) + "keyvalstore.bak";
-		this.tempBackupFilename = Config.backupsDir(nodeAddress(node)) + "keyvalstore.temp.bak";
+		this.backupFilename = Config.backupsDir(node) + "keyvalstore.bak";
+		this.tempBackupFilename = Config.backupsDir(node) + "keyvalstore.temp.bak";
 
-		this.partitioner = createPartitioner();
 		this.serializer = SerializerFactory.getSimpleSerializer();
 
 		recoverLastSavedState();
 
-		this.writeAheadLogger = FileUtils.fileAppender(new File(backupFilename));
+		try {
+			this.writeAheadLogger = FileUtils.fileAppender(new File(backupFilename));
+		} catch (IOException e) {
+			throw new RuntimeException(
+					"Failed to initialize write-ahead-logging. (Log filename: [" + backupFilename + "])", e);
+		}
 	}
 
 	public void recoverLastSavedState() {
@@ -83,7 +86,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	}
 
 	protected V readFromReplicas(K key, int numReplicas) throws Exc {
-		int idx = partitioner.indexOfResponsibleNode(key);
+		int idx = getPartitioner().indexOfResponsibleNode(key);
 		Val v = this.getClientConnection(nodes.get(idx)).read(key);
 		Val v1;
 		while (numReplicas-- > 1) {
@@ -109,7 +112,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 
 	protected void writeToReplicas(K key, V value, int numReplicas) throws Exc {
 		Val valueWrpr = createValue(value);
-		int idx = partitioner.indexOfResponsibleNode(key);
+		int idx = getPartitioner().indexOfResponsibleNode(key);
 		while (numReplicas-- > 0) {
 			++idx;
 			idx %= nodes.size();
@@ -156,6 +159,15 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		if (!connCache.containsKey(node))
 			connCache.put(node, createConnection(node));
 		return connCache.get(node).getClient();
+	}
+
+	protected IPartitioner<K> getPartitioner() throws Exc {
+		if (partitioner == null) {
+			if (nodes == null)
+				throw createException("Neighboring Nodes list not initialized");
+			partitioner = createPartitioner();
+		}
+		return partitioner;
 	}
 
 	protected abstract Exc createException(String message);
