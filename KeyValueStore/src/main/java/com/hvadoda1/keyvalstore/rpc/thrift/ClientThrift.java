@@ -13,9 +13,11 @@ import com.hvadoda1.keyvalstore.rpc.thrift.generated.Value;
 public class ClientThrift implements IKeyValueStoreClient<Integer, String, Node, Value, ConsistencyLevel, TException> {
 
 	protected final KeyValueStore.Client clientConn;
+	protected final Node remoteNode;
 
-	public ClientThrift(KeyValueStore.Client clientConn) {
+	public ClientThrift(Node remoteNode, KeyValueStore.Client clientConn) {
 		this.clientConn = clientConn;
+		this.remoteNode = remoteNode;
 	}
 
 	@Override
@@ -31,6 +33,11 @@ public class ClientThrift implements IKeyValueStoreClient<Integer, String, Node,
 	@Override
 	public Map<Integer, Value> getMissedWrites(Node node) throws TException {
 		return clientConn.getMissedWrites(node);
+	}
+
+	@Override
+	public Node getRemoteNode() {
+		return remoteNode;
 	}
 
 }

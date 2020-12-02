@@ -9,7 +9,11 @@ public class SerializerFactory {
 	private static final BasicObjectSerializer basicSerializer = new BasicObjectSerializer();
 
 	public static <T> ISerializer<T> getSimpleSerializer() {
-		return new SimpleSerializer<T>(basicSerializer);
+		return getSimpleSerializer(false);
+	}
+	
+	public static <T> ISerializer<T> getSimpleSerializer(boolean strict) {
+		return new SimpleSerializer<T>(basicSerializer, strict);
 	}
 
 	public static ISerializer<Object> getBasicObjectSerializer() {

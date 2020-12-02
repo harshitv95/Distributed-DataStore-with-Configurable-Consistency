@@ -26,7 +26,7 @@ public class ClientConnectionThrift implements
 	public ClientConnectionThrift(Node node) throws TTransportException {
 		this.node = Objects.requireNonNull(node, "Node cannot be null; Failed to connect to neighbor");
 
-		client = new ClientThrift(new KeyValueStore.Client(setupTransport()));
+		client = new ClientThrift(node, new KeyValueStore.Client(setupTransport()));
 	}
 
 	@Override

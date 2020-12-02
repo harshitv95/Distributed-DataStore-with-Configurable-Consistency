@@ -25,4 +25,6 @@ public interface IKeyValueStoreClient<K, V, N extends INode, Val extends IValue<
 	 */
 	Map<K, Val> getMissedWrites(N node) throws Exc;
 
+	N getRemoteNode();
+
 }

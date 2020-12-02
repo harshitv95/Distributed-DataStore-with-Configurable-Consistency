@@ -3,28 +3,25 @@ package com.hvadoda1.keyvalstore.util.partitioning;
 public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 
 	private final int keyMin, keyMax;
-//	private final List<N> nodes;
 	private final int startKeys[];
 
-	public IntegerByteOrderParitioner(int keyMin, int keyMax, int numNodes/*, List<N> nodes*/) {
-		this.keyMin = keyMin;
-		this.keyMax = keyMax;
-//		this.nodes = new ArrayList<>(nodes);
-//		Collections.sort(this.nodes, (node1, node2) -> nodeAddress(node1).compareTo(nodeAddress(node2)));
-		this.startKeys = new int[numNodes];
-		int incFactor = (keyMax - keyMin) / numNodes;
-		for (int i = 0; i < keyMax; i++) {
-			startKeys[i] = keyMin + (i * incFactor);
-		}
+	public IntegerByteOrderParitioner(int keyMin, int keyMax, int numNodes) {
+		this(keyMin, keyMax, createStartKeys(keyMin, keyMax, numNodes));
 	}
 
-//	@Override
-//	public N getResponsibleNode(Integer key) {
-//		int idx = indexOfNode(key);
-//		if (idx == -1 || idx >= nodes.size())
-//			return null;
-//		return nodes.get(idx);
-//	}
+	protected static int[] createStartKeys(int keyMin, int keyMax, int numNodes) {
+		int[] startKeys = new int[numNodes];
+		int incFactor = (keyMax - keyMin) / numNodes;
+		for (int i = 0; i < keyMax; i++)
+			startKeys[i] = keyMin + (i * incFactor);
+		return startKeys;
+	}
+
+	public IntegerByteOrderParitioner(int keyMin, int keyMax, int[] startKeys) {
+		this.keyMin = keyMin;
+		this.keyMax = keyMax;
+		this.startKeys = startKeys;
+	}
 
 	@Override
 	public int indexOfResponsibleNode(Integer key) {

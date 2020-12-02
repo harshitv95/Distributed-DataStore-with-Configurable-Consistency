@@ -3,11 +3,13 @@ package com.hvadoda1.keyvalstore.util.serialize;
 import java.io.IOException;
 
 public class SimpleSerializer<T> implements ISerializer<T> {
-	
-	protected final BasicObjectSerializer serializer;
 
-	public SimpleSerializer(BasicObjectSerializer serializer) {
+	protected final BasicObjectSerializer serializer;
+	protected final boolean strict;
+
+	public SimpleSerializer(BasicObjectSerializer serializer, boolean strict) {
 		this.serializer = serializer;
+		this.strict = strict;
 	}
 
 	@Override
@@ -18,7 +20,10 @@ public class SimpleSerializer<T> implements ISerializer<T> {
 	@SuppressWarnings("unchecked")
 	@Override
 	public T deserialize(String serialized) throws IOException, ClassNotFoundException {
-		return (T) serializer.deserialize(serialized);
+		T ret = (T) serializer.deserialize(serialized);
+		if (strict && ret == null)
+			throw new SerializerException("Failed to deserialize to object");
+		return ret;
 	}
 
 }
