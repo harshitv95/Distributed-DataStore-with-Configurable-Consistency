@@ -4,6 +4,7 @@ import static com.hvadoda1.keyvalstore.util.CommonUtils.isInt;
 import static com.hvadoda1.keyvalstore.util.CommonUtils.parseArgsMap;
 
 import java.util.Map;
+import java.util.Objects;
 
 public class StartKeyValueStoreService {
 
@@ -17,6 +18,7 @@ public class StartKeyValueStoreService {
 				.factory(KeyValueStoreImpls.THRIFT);
 
 		try {
+			Objects.requireNonNull(starter.initConfig(paramArgs), "Config was not initialized");
 			starter.start(Integer.parseInt(paramArgs.get("port")));
 		} catch (Exception e) {
 			e.printStackTrace();

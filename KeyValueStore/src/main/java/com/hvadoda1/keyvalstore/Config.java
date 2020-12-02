@@ -17,7 +17,7 @@ public class Config {
 
 	protected final Map<String, String> args;
 
-	Config(Map<String, String> params) {
+	public Config(Map<String, String> params) {
 		if (instance != null)
 			throw new RuntimeException("Config already initialized");
 		numReplicas = Integer.parseInt(params.getOrDefault("replicas", "3"));

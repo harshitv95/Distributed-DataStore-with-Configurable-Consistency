@@ -2,6 +2,7 @@ package com.hvadoda1.keyvalstore.rpc.thrift;
 
 import java.net.InetAddress;
 import java.net.UnknownHostException;
+import java.util.Map;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
@@ -10,6 +11,7 @@ import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportException;
 
+import com.hvadoda1.keyvalstore.Config;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.KeyValueStore;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Node;
 import com.hvadoda1.keyvalstore.starter.IKeyValueStoreServiceStarter;
@@ -62,5 +64,10 @@ public class ThriftServiceStarter
 			e.printStackTrace();
 			throw new RuntimeException("Failed to start KeyValueStore listener service");
 		}
+	}
+
+	@Override
+	public Config initConfig(Map<String, String> args) {
+		return new Config(args);
 	}
 }
