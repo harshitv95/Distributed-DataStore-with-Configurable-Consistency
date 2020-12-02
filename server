@@ -12,11 +12,11 @@ echo "Main-Class: com.hvadoda1.keyvalstore.starter.StartKeyValueStoreService" >>
 echo "Class-Path: $(echo $LIB_PATH | sed -r 's/:/\n  /g')" >> Manifest.mf
 echo "" >> Manifest.mf
 
-RES_DIR=$(find -name "resources")
-cp $RES_DIR/* ./bin
+#RES_DIR=$(find -name "resources")
+#cp $RES_DIR/* ./bin
 
 cd bin/
-jar cmf ../Manifest.mf ../server.jar com/ *.properties
+jar cmf ../Manifest.mf ../server.jar com/ #*.properties
 
 cd ..
 rm -f Manifest.mf
