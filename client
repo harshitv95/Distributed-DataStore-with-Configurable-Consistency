@@ -1,0 +1,26 @@
+LIB_PATH="$(echo $(ls -d $PWD/KeyValueStore/lib/*) | tr ' ' ':')"
+echo Using LIB_PATH: $LIB_PATH
+
+find -name "*.java" > sources.txt
+javac -classpath $LIB_PATH -d ./bin/ @sources.txt
+
+PACKAGE_ROOT=$(echo "$dirs")
+
+rm -f Manifest.mf
+echo "Manifest-Version: 1.0" > Manifest.mf
+echo "Main-Class: com.hvadoda1.keyvalstore.frontend.starter.StartKeyValueStoreFrontEnd" >> Manifest.mf
+echo "Class-Path: $(echo $LIB_PATH | sed -r 's/:/\n  /g')" >> Manifest.mf
+echo "" >> Manifest.mf
+
+#RES_DIR=$(find -name "resources")
+#cp $RES_DIR/* ./bin
+
+cd bin/
+jar cmf ../Manifest.mf ../server.jar com/ #*.properties
+
+cd ..
+rm -f Manifest.mf
+rm -f sources.txt
+rm -rf bin
+
+java -jar server.jar ${@}
