@@ -9,7 +9,7 @@ public class KeyValueStoreServiceStarterFactory {
 		case THRIFT:
 			return new ThriftServiceStarter();
 		}
-		throw new RuntimeException("Invalid Service Starter: [" + null + "]");
+		throw new RuntimeException("Invalid Service Starter: [" + impl + "]");
 	}
 
 }

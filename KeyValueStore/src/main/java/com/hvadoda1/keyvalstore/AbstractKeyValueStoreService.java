@@ -6,12 +6,14 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import com.hvadoda1.keyvalstore.util.FileUtils;
+import com.hvadoda1.keyvalstore.util.Logger;
 import com.hvadoda1.keyvalstore.util.NodeUtils;
 import com.hvadoda1.keyvalstore.util.SerializerFactory;
 import com.hvadoda1.keyvalstore.util.partitioning.IPartitioner;
@@ -34,7 +36,9 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected List<N> nodes = null;
 	protected IPartitioner<K> partitioner;
 
-	protected final Map<N, IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> connCache = new HashMap<>();
+//	protected final Map<N, IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> connCache = new HashMap<>();
+
+	protected IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> connCache;
 
 	protected final FileWriter writeAheadLogger;
 
@@ -108,13 +112,15 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 				try {
 					client = getClientConnection(node);
 					vals = client.getMissedWrites(this.node);
-					vals.forEach((k, v) -> {
-						try {
-							this.write(k, v);
-						} catch (Exception e) {
-							System.err.println("Failed to save hinted entry.\nCause:" + e.getMessage());
-						}
-					});
+					if (vals != null) {
+						vals.forEach((k, v) -> {
+							try {
+								this.write(k, v);
+							} catch (Exception e) {
+								System.err.println("Failed to save hinted entry.\nCause:" + e.getMessage());
+							}
+						});
+					}
 				} catch (Exception e) {
 					e.printStackTrace();
 					continue;
@@ -126,83 +132,128 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 
 	@Override
 	public V get(K key, Con level) throws Exc {
-		Objects.requireNonNull(key, "Key was null, cannot GET");
-		Objects.requireNonNull(level, "Consistency level was null, cannot GET value mapped to key [" + key + "]");
+		try {
+			Logger.info("Attempt to GET key [" + key + "] with level [" + level + "]");
+			Objects.requireNonNull(key, "Key was null, cannot GET");
+			Objects.requireNonNull(level, "Consistency level was null, cannot GET value mapped to key [" + key + "]");
 
-		int replicaCount = level.readReplicas();
-		if (replicaCount <= 0 || replicaCount > Config.numReplicas())
-			throw createException("Consistency Level [" + level + "] was not configured correctly");
+			int replicaCount = level.readReplicas();
+			if (replicaCount <= 0 || replicaCount > Config.numReplicas()) {
+				Logger.debugLow("Level [" + level + "] had replicaCount: [" + replicaCount + "]");
+				throw new RuntimeException("Consistency Level [" + level + "] was not configured correctly");
+			}
 
-		return readFromReplicas(key, replicaCount);
+			Logger.info("Contacting [" + replicaCount + "] replicas for key [" + key + "] and level [" + level + "]");
+			return readFromReplicas(key, replicaCount);
+		} catch (Exception e) {
+			if (!shouldWrapException(e))
+				throw e;
+			throw createException("An error occurred while GETting value for key [" + key + "]", e);
+		}
 	}
 
-	protected V readFromReplicas(K key, int numReplicas) throws Exc {
+	protected V readFromReplicas(K key, int numReplicasToContact) throws Exc {
 		int idx = getPartitioner().indexOfResponsibleNode(key);
-		Val v = this.getClientConnection(nodes.get(idx)).read(key);
-		Val v1;
+		Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
+		if (idx == -1) {
+			throw new RuntimeException("Invalid key [" + key + "]");
+		}
+		Val v = null, v1;
 
 		Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
-		int availableReplicas = 0;
 		int maxConfiguredReplicaCount = Config.numReplicas();
-		while (maxConfiguredReplicaCount-- > 0 && availableReplicas < numReplicas) {
+		String nodeAddress;
+		while (maxConfiguredReplicaCount-- > 0 && replicas.size() < numReplicasToContact) {
+			nodeAddress = NodeUtils.nodeAddress(nodes.get(idx));
 			try {
+				Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
 				replicas.put(nodes.get(idx), this.getClientConnection(nodes.get(idx)));
-				availableReplicas++;
+				Logger.debugLow("Replica [" + nodeAddress + "] available");
 			} catch (Exception e) {
+				Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
 			}
 			idx++;
 			idx %= nodes.size();
 		}
 
-		if (availableReplicas < numReplicas)
-			throw createException("Failed to process read request, only [" + availableReplicas
-					+ "] out of the minimum required [" + numReplicas + "] replicas were available");
+		if (replicas.size() < numReplicasToContact)
+			throw new RuntimeException("Failed to process read request, only [" + replicas.size()
+					+ "] out of the minimum required [" + numReplicasToContact + "] replicas were available");
 
 		for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet()) {
 			v1 = replica.getValue().read(key);
+			Logger.debugLow("Client [" + replica.getValue().getRemoteNode() + "] [" + key + "]->[" + v1.getValue()
+					+ "] with timestamp [" + v1.getMeta().getTimestamp() + "]");
 			if (shouldOverwrite(v, v1))
 				v = v1;
 		}
-
+		try {
+			if (connCache != null && connCache.isOpen())
+				connCache.close();
+		} catch (IOException e) {
+		}
+		Logger.info("Final [" + key + "]->[" + v.getValue() + "] with timestamp: [" + v.getMeta().getTimestamp() + "]");
 		return v.getValue();
 	}
 
 	@Override
 	public void put(K key, V value, Con level) throws Exc {
-		Objects.requireNonNull(key, "Key was null, cannot PUT");
-		Objects.requireNonNull(value, "Value was null, cannot PUT");
-		Objects.requireNonNull(level, "Consistency level was null, cannot PUT value mapped to key [" + key + "]");
+		try {
+			Logger.info("Attempt to PUT (" + key + ", " + value + ") with level [" + level + "]");
+			Objects.requireNonNull(key, "Key was null, cannot PUT");
+			Objects.requireNonNull(value, "Value was null, cannot PUT");
+			Objects.requireNonNull(level, "Consistency level was null, cannot PUT value mapped to key [" + key + "]");
 
-		int minReplicas = level.minWriteReplicas(), maxReplicas = level.maxWriteReplicas();
-		if (maxReplicas <= 0 || maxReplicas > Config.numReplicas() || minReplicas <= 0
-				|| minReplicas > Config.numReplicas())
-			throw createException("Consistency Level [" + level + "] was not configured correctly");
+			int minReplicas = level.minWriteReplicas(), maxReplicas = level.maxWriteReplicas();
+			if (maxReplicas <= 0 || maxReplicas > Config.numReplicas() || minReplicas <= 0
+					|| minReplicas > Config.numReplicas())
+				throw new RuntimeException("Consistency Level [" + level + "] was not configured correctly");
 
-		writeToReplicas(key, value, minReplicas, maxReplicas);
+			Logger.info("Contacting between [" + minReplicas + "] & [" + maxReplicas + "] replicas to store (" + key
+					+ ", " + value + ") and level [" + level + "]");
+			writeToReplicas(key, value, minReplicas, maxReplicas, level.shouldSaveMissedUpdates());
+		} catch (Exception e) {
+			if (!shouldWrapException(e))
+				throw e;
+			throw createException("An error occurred while PUTting (" + key + ", " + value + ")", e);
+		}
 	}
 
-	protected void writeToReplicas(K key, V value, int minReplicas, int maxReplicas) throws Exc {
+	protected void writeToReplicas(K key, V value, int minReplicas, int maxReplicas, boolean shouldSaveHints)
+			throws Exc {
 		Val valueWrpr = createValue(value);
 		int idx = getPartitioner().indexOfResponsibleNode(key);
+		Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
+		if (idx == -1)
+			throw new RuntimeException("Invalid key [" + key + "]");
 
 		Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
+		List<IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> conns = new ArrayList<>();
 		int availableReplicas = 0;
 		IKeyValueStoreClient<K, V, N, Val, Con, Exc> client;
 		int maxConfiguredReplicaCount = Config.numReplicas();
+		String nodeAddress;
 		while (maxConfiguredReplicaCount-- > 0 && availableReplicas < maxReplicas) {
+			nodeAddress = NodeUtils.nodeAddress(nodes.get(idx));
 			try {
+				Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
 				client = this.getClientConnection(nodes.get(idx));
 				availableReplicas++;
+				conns.add(connCache);
+				Logger.debugLow("Replica [" + nodeAddress + "] available");
 			} catch (Exception e) {
 				client = null;
+				Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
 			}
-			replicas.put(nodes.get(idx), client);
+			connCache = null;
+			if (client != null || shouldSaveHints)
+				replicas.put(nodes.get(idx), client);
 			idx++;
 			idx %= nodes.size();
 		}
 
 		if (availableReplicas < minReplicas)
-			throw createException("Failed to process write request, only [" + availableReplicas
+			throw new RuntimeException("Failed to process write request, only [" + availableReplicas
 					+ "] out of the minimum required [" + minReplicas + "] replicas were available");
 
 		for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet())
@@ -210,45 +261,71 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 				missedWrites.saveMissedWrite(replica.getKey(), key, valueWrpr);
 			else
 				replica.getValue().write(key, valueWrpr);
+
+		for (IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> conn : conns)
+			if (conn != null)
+				try {
+					conn.close();
+				} catch (IOException e) {
+					Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
+				}
 	}
 
 	@Override
 	public Val read(K key) throws Exc {
-		if (!memTable.containsKey(key))
-			throw createException("Key [" + key + "] not found");
-		return memTable.get(key);
+		Logger.info("Fetching value for [" + key + "] from MemTable");
+		try {
+			if (!memTable.containsKey(key))
+				throw new RuntimeException("Key [" + key + "] not found");
+			return memTable.get(key);
+		} catch (Exception e) {
+			throw createException("An error occurred while trying to read value for key [" + key + "] in MemTable", e);
+		}
 	}
 
 	@Override
 	public void write(K key, Val value) throws Exc {
-		Objects.requireNonNull(value, "Value mapped to Key [" + key + "] was null");
-		writeAheadLog(new Entry<>(key, value));
-		if (!memTable.containsKey(key) || shouldOverwrite(memTable.get(key), value))
-			memTable.put(key, value);
+		Logger.info("Attempting to write (" + key + ", " + value.getValue() + ") to MemTable");
+		try {
+			Objects.requireNonNull(value, "Value mapped to Key [" + key + "] was null");
+			if (!memTable.containsKey(key) || shouldOverwrite(memTable.get(key), value)) {
+				writeAheadLog(new Entry<>(key, value));
+				memTable.put(key, value);
+			} else
+				Logger.info("Rejecting write of (" + key + ", " + value.getValue()
+						+ ") because value with newer timestamp exists");
+		} catch (Exception e) {
+			throw createException("An error occurred while attempting to write to MemTable", e);
+		}
 	}
 
 	protected void writeAheadLog(Entry<K, Val> entry) throws Exc {
 		try {
 			this.writeAheadLogger.write(serializer.serialize(entry));
+			entryCount++;
 		} catch (IOException e) {
-			throw createException("Failed to write/update value, due to failure in write-ahead-logging");
+			throw new RuntimeException("Failed to write/update value, due to failure in write-ahead-logging");
 		}
 	}
 
 	@Override
 	public Map<K, Val> getMissedWrites(N node) throws Exc {
-		return missedWrites.getMissedWrites(node);
+		try {
+			return missedWrites.getMissedWrites(node);
+		} catch (Exception e) {
+			throw createException("An error occurred while getting hinted handoffs", e);
+		}
 	}
 
 	@Override
 	public void setNeighborList(List<N> nodes) throws Exc {
 		if (this.nodes != null)
-			throw createException(
+			throw new RuntimeException(
 					"Cluster nodes list already set, attempt to reset the list (Please restart the cluster to set list of nodes again)");
 		try {
 			FileUtils.fileAppender(new File(nodesListFilename));
 		} catch (IOException e) {
-			throw createException("Failed to set nodes list, due to failure in logging the list");
+			throw new RuntimeException("Failed to set nodes list, due to failure in logging the list");
 		}
 		this.nodes = nodes;
 	}
@@ -256,15 +333,21 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected IKeyValueStoreClient<K, V, N, Val, Con, Exc> getClientConnection(N node) {
 		if (node.equals(this.node))
 			return this;
-		if (!connCache.containsKey(node))
-			connCache.put(node, createConnection(node));
-		return connCache.get(node).getClient();
+		if (connCache != null && connCache.isOpen())
+			try {
+				connCache.close();
+			} catch (IOException e) {
+			}
+
+		Logger.debugLow("Connecting to client [" + node + "]");
+		connCache = createConnection(node);
+		return connCache.getClient();
 	}
 
 	protected IPartitioner<K> getPartitioner() throws Exc {
 		if (partitioner == null) {
 			if (nodes == null)
-				throw createException("Neighboring Nodes list not initialized");
+				throw new NullPointerException("Neighboring Nodes list not initialized");
 			partitioner = createPartitioner();
 		}
 		return partitioner;
@@ -279,6 +362,8 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected abstract Exc createException(String message);
 
 	protected abstract Exc createException(String message, Exception cause);
+
+	protected abstract boolean shouldWrapException(Exception e);
 
 	protected abstract IPartitioner<K> createPartitioner();
 

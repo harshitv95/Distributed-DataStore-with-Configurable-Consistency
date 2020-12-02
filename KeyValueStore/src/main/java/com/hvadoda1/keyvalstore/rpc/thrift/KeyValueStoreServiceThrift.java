@@ -86,7 +86,7 @@ public class KeyValueStoreServiceThrift
 		try {
 			return new ClientConnectionThrift(node);
 		} catch (TTransportException e) {
-			throw new RuntimeException("Failed to connect to Node [" + node + "]");
+			throw new RuntimeException("Failed to connect to Node [" + node + "]", e);
 		}
 	}
 
@@ -106,6 +106,11 @@ public class KeyValueStoreServiceThrift
 	@Override
 	protected Node createNode(String ip, int port) {
 		return new Node(ip, port);
+	}
+
+	@Override
+	protected boolean shouldWrapException(Exception e) {
+		return (e == null || !(e instanceof SystemException));
 	}
 
 }

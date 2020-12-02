@@ -4,6 +4,7 @@ import static com.hvadoda1.keyvalstore.util.ValueUtils.shouldOverwrite;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 public class HintedHandoffs<K, V, Val extends IValue<V>, N extends INode> implements IHintedHandoffs<K, V, Val, N> {
 
@@ -11,6 +12,8 @@ public class HintedHandoffs<K, V, Val extends IValue<V>, N extends INode> implem
 
 	@Override
 	public void saveMissedWrite(N node, K key, Val value) {
+		Objects.requireNonNull(node, "HintedHandoffs: node cannot be null");
+
 		if (!missedWrites.containsKey(node))
 			missedWrites.put(node, new HashMap<>());
 		if (!missedWrites.get(node).containsKey(key) || shouldOverwrite(missedWrites.get(node).get(key), value))

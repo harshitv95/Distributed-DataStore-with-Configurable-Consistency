@@ -2,7 +2,8 @@ package com.hvadoda1.keyvalstore;
 
 import java.util.Map;
 
-public interface IKeyValueStoreClient<K, V, N extends INode, Val extends IValue<V>, Con extends IConsistencyLevel, Exc extends Exception> {
+public interface IKeyValueStoreClient<K, V, N extends INode, Val extends IValue<V>, Con extends IConsistencyLevel, Exc extends Exception>
+		extends IKeyValueStoreService<K, V, N, Val, Con, Exc> {
 	/**
 	 * @param key
 	 * @return Value mapped to provided {@code key} if the mapping exists in the

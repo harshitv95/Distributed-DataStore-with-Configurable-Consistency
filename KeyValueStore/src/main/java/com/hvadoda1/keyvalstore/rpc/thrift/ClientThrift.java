@@ -40,4 +40,14 @@ public class ClientThrift implements IKeyValueStoreClient<Integer, String, Node,
 		return remoteNode;
 	}
 
+	@Override
+	public String get(Integer key, ConsistencyLevel level) throws TException {
+		return clientConn.get(key, level);
+	}
+
+	@Override
+	public void put(Integer key, String value, ConsistencyLevel level) throws TException {
+		clientConn.put(key, value, level);
+	}
+
 }

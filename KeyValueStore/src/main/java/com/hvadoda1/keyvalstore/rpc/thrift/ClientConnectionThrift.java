@@ -1,6 +1,5 @@
 package com.hvadoda1.keyvalstore.rpc.thrift;
 
-import java.io.Closeable;
 import java.util.Objects;
 
 import org.apache.thrift.TException;
@@ -15,9 +14,11 @@ import com.hvadoda1.keyvalstore.rpc.thrift.generated.ConsistencyLevel;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.KeyValueStore;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Node;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Value;
+import com.hvadoda1.keyvalstore.util.Logger;
+import com.hvadoda1.keyvalstore.util.NodeUtils;
 
-public class ClientConnectionThrift implements
-		IKeyValueStoreClientConnection<Integer, String, Node, Value, ConsistencyLevel, TException>, Closeable {
+public class ClientConnectionThrift
+		implements IKeyValueStoreClientConnection<Integer, String, Node, Value, ConsistencyLevel, TException> {
 
 	protected final Node node;
 	protected TTransport transport;
@@ -35,7 +36,7 @@ public class ClientConnectionThrift implements
 	}
 
 	protected TProtocol setupTransport() throws TTransportException {
-		transport = new TSocket(node.getIp(), node.getPort());
+		transport = new TSocket(node.getIp(), node.getPort(), 1000);
 		if (!transport.isOpen())
 			transport.open();
 		return new TBinaryProtocol(transport);
@@ -43,7 +44,11 @@ public class ClientConnectionThrift implements
 
 	@Override
 	public void close() {
-		transport.close();
+		try {
+			transport.close();
+		} catch (Exception e) {
+			Logger.error("Exception while closing connection to client [" + NodeUtils.nodeAddress(node) + "]", e);
+		}
 	}
 
 	@Override

@@ -4,6 +4,8 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.net.InetAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.BiFunction;
@@ -35,5 +37,13 @@ public class NodeUtils {
 			}
 		}
 		return nodes;
+	}
+
+	public static String ipAddr() {
+		try {
+			return InetAddress.getLocalHost().getHostAddress();
+		} catch (UnknownHostException e) {
+			throw new RuntimeException("Failed to start server", e);
+		}
 	}
 }

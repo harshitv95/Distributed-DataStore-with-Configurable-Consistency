@@ -1,7 +1,7 @@
 package com.hvadoda1.keyvalstore.rpc.thrift;
 
-import java.net.InetAddress;
-import java.net.UnknownHostException;
+import static com.hvadoda1.keyvalstore.util.NodeUtils.ipAddr;
+
 import java.util.Map;
 
 import org.apache.thrift.TException;
@@ -15,6 +15,7 @@ import com.hvadoda1.keyvalstore.Config;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.KeyValueStore;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Node;
 import com.hvadoda1.keyvalstore.starter.IKeyValueStoreServiceStarter;
+import com.hvadoda1.keyvalstore.util.Logger;
 
 public class ThriftServiceStarter
 		implements IKeyValueStoreServiceStarter<Node, TException, KeyValueStoreServiceThrift> {
@@ -23,23 +24,14 @@ public class ThriftServiceStarter
 
 	@Override
 	public void start(int port) throws TException {
+		String ip = ipAddr();
+		Logger.info("Starting Thrift server at address:\n" + ip + ":" + port);
 		try {
-			processor = new KeyValueStore.Processor<>(createServerHandler(getIp(), port));
+			processor = new KeyValueStore.Processor<>(createServerHandler(ip, port));
 			TServer server = setupServer(port);
 			server.serve();
-		} catch (TTransportException e) {
-			e.printStackTrace();
-		} catch (TException e) {
-			e.printStackTrace();
-			System.err.println("Caught T Exception");
-		}
-	}
-
-	protected String getIp() {
-		try {
-			return InetAddress.getLocalHost().getHostAddress();
-		} catch (UnknownHostException e) {
-			throw new RuntimeException("Failed to start server", e);
+		} catch (Exception e) {
+			throw new RuntimeException("Failed to start KeyValueStore (Thrift)", e);
 		}
 	}
 
