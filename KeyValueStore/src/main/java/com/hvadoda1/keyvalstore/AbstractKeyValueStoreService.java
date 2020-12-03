@@ -175,6 +175,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 			if (idx == -1) {
 				throw new RuntimeException("Invalid key [" + key + "]");
 			}
+			Logger.info("Primary Replica for Key [" + key + "] : [" + NodeUtils.nodeAddress(nodes.get(idx)) + "]");
 			Val v = null, v1;
 
 			Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
@@ -255,9 +256,9 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 			Val valueWrpr = createValue(value);
 			int idx = getPartitioner().indexOfResponsibleNode(key);
 			Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
-			Logger.info("Primary Replica for Key [" + key + "] : [" + NodeUtils.nodeAddress(nodes.get(idx)) + "]");
 			if (idx == -1)
 				throw new RuntimeException("Invalid key [" + key + "]");
+			Logger.info("Primary Replica for Key [" + key + "] : [" + NodeUtils.nodeAddress(nodes.get(idx)) + "]");
 
 			Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
 			int availableReplicas = 0;
