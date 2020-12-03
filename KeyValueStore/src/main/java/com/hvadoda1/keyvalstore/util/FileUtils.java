@@ -42,9 +42,9 @@ public class FileUtils {
 	}
 
 	/**
-	 * <li>If param {@code deleteFolder} is {@code false} : Deletes only the contents
-	 * of the folder represented by the parameter {@code file}, but does not delete
-	 * the folder.</li>
+	 * <li>If param {@code deleteFolder} is {@code false} : Deletes only the
+	 * contents of the folder represented by the parameter {@code file}, but does
+	 * not delete the folder.</li>
 	 * <li>Else: Deletes the whole folder represented by the parameter
 	 * {@code file}</li>
 	 * 
@@ -69,11 +69,15 @@ public class FileUtils {
 	}
 
 	public static FileWriter fileAppender(File file) throws IOException {
+		return fileAppender(file, true);
+	}
+
+	public static FileWriter fileAppender(File file, boolean truncateFileContents) throws IOException {
 		if (!file.exists()) {
 			file.getParentFile().mkdirs();
 			file.createNewFile();
 		}
-		return new FileWriter(file);
+		return new FileWriter(file, !truncateFileContents);
 	}
 
 	public static void deleteFile(File file) throws IOException {
