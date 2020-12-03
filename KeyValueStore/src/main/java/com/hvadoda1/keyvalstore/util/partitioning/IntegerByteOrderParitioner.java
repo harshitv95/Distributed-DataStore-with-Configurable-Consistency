@@ -35,14 +35,23 @@ public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 	}
 
 	protected int indexOfNode(int key) {
-		if (key < keyMin || key >= keyMax)
+		if (key < keyMin || key > keyMax)
 			return -1;
 		int s = 0, e = startKeys.length - 1;
 		int mid;
 		while (s < e + 1) {
 			mid = (s + e) / 2;
+
 			if (startKeys[mid] == key)
 				return mid;
+			if (startKeys[s] == key)
+				return s;
+			if (startKeys[e] == key)
+				return e;
+
+			s++;
+			e--;
+
 			if (startKeys[mid] > key) {
 				if (mid == 0)
 					return -1;
