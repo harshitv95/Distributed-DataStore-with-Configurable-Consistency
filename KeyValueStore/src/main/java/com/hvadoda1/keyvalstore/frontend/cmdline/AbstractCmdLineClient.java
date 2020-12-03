@@ -166,9 +166,9 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 
 				}
 			}, params -> {
-				try {
-					System.out.println("Value: " + getFrontEndClient((N) params.get("node"))
-							.get((int) params.get("key"), (Con) params.get("level")));
+				try (AbstractFrontEndClient<Integer, String, N, Val, Con, Ex> client = getFrontEndClient(
+						(N) params.get("node"));) {
+					System.out.println("Value: " + client.get((int) params.get("key"), (Con) params.get("level")));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
@@ -196,9 +196,9 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 
 				}
 			}, params -> {
-				try {
-					getFrontEndClient((N) params.get("node")).put((int) params.get("key"), (String) params.get("value"),
-							(Con) params.get("level"));
+				try (AbstractFrontEndClient<Integer, String, N, Val, Con, Ex> client = getFrontEndClient(
+						(N) params.get("node"));) {
+					client.put((int) params.get("key"), (String) params.get("value"), (Con) params.get("level"));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
