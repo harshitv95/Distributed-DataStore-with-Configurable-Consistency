@@ -313,7 +313,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 			this.writeAheadLogger.flush();
 			entryCount++;
 		} catch (IOException e) {
-			throw new RuntimeException("Failed to write/update value, due to failure in write-ahead-logging");
+			throw new RuntimeException("Failed to write/update value, due to failure in write-ahead-logging", e);
 		}
 	}
 
