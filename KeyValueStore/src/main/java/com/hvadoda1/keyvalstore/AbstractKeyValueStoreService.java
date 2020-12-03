@@ -1,6 +1,7 @@
 package com.hvadoda1.keyvalstore;
 
 import static com.hvadoda1.keyvalstore.util.ValueUtils.shouldOverwrite;
+import static com.hvadoda1.keyvalstore.util.ValueUtils.valueToStr;
 
 import java.io.BufferedReader;
 import java.io.File;
@@ -168,6 +169,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		Val v = null, v1;
 
 		Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
+		List<IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> conns = new ArrayList<>();
 		int maxConfiguredReplicaCount = Config.numReplicas();
 		String nodeAddress;
 		while (maxConfiguredReplicaCount-- > 0 && replicas.size() < numReplicasToContact) {
@@ -175,10 +177,12 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 			try {
 				Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
 				replicas.put(nodes.get(idx), this.getClientConnection(nodes.get(idx)));
+				conns.add(connCache);
 				Logger.debugLow("Replica [" + nodeAddress + "] available");
 			} catch (Exception e) {
 				Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
 			}
+			connCache = null;
 			idx++;
 			idx %= nodes.size();
 		}
@@ -188,17 +192,23 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 					+ "] out of the minimum required [" + numReplicasToContact + "] replicas were available");
 
 		for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet()) {
-			v1 = replica.getValue().read(key);
-			Logger.debugLow("Client [" + replica.getValue().getRemoteNode() + "] [" + key + "]->[" + v1.getValue()
-					+ "] with timestamp [" + v1.getMeta().getTimestamp() + "]");
+			try {
+				v1 = replica.getValue().read(key);
+			} catch (Exception e) {
+				v1 = null;
+			}
+			Logger.debugLow(
+					"Client [" + replica.getValue().getRemoteNode() + "] [" + key + "]->[" + valueToStr(v1) + "]");
 			if (shouldOverwrite(v, v1))
 				v = v1;
 		}
-		try {
-			if (connCache != null && connCache.isOpen())
-				connCache.close();
-		} catch (IOException e) {
-		}
+		for (IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> conn : conns)
+			if (conn != null)
+				try {
+					conn.close();
+				} catch (IOException e) {
+					Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
+				}
 		Logger.info("Final [" + key + "]->[" + v.getValue() + "] with timestamp: [" + v.getMeta().getTimestamp() + "]");
 		return v.getValue();
 	}
@@ -282,6 +292,10 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	public Val read(K key) throws Exc {
 		Logger.info("Fetching value for [" + key + "] from MemTable");
 		try {
+//			if (!memTable.containsKey(key)) {
+//				Logger.error("Key [" + key + "] not found", null);
+//				return null;
+//			}
 			if (!memTable.containsKey(key))
 				throw new RuntimeException("Key [" + key + "] not found");
 			return memTable.get(key);
