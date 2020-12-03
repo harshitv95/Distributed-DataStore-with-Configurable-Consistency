@@ -18,6 +18,7 @@ import com.hvadoda1.keyvalstore.rpc.thrift.generated.SystemException;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Value;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.ValueMetadata;
 import com.hvadoda1.keyvalstore.util.FileUtils;
+import com.hvadoda1.keyvalstore.util.Logger;
 import com.hvadoda1.keyvalstore.util.partitioning.IPartitioner;
 import com.hvadoda1.keyvalstore.util.partitioning.IntegerByteOrderParitioner;
 
@@ -69,6 +70,7 @@ public class KeyValueStoreServiceThrift
 
 	@Override
 	protected TException createException(String message, Exception cause) {
+		Logger.error(message, cause);
 		SystemException se = new SystemException();
 		se.message = message;
 		se.initCause(cause);
