@@ -36,7 +36,7 @@ public class ClientConnectionThrift
 	}
 
 	protected TProtocol setupTransport() throws TTransportException {
-		transport = new TSocket(node.getIp(), node.getPort(), 10000);
+		transport = new TSocket(node.getIp(), node.getPort(), 5000);
 		if (!transport.isOpen())
 			transport.open();
 		return new TBinaryProtocol(transport);
