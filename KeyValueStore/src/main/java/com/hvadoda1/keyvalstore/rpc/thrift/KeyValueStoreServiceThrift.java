@@ -77,7 +77,8 @@ public class KeyValueStoreServiceThrift
 
 	@Override
 	protected IPartitioner<Integer> createPartitioner() {
-		return new IntegerByteOrderParitioner(0, 255, nodes.size());
+		return START_KEYS == null ? new IntegerByteOrderParitioner(KEY_MIN, KEY_MAX, nodes.size())
+				: new IntegerByteOrderParitioner(KEY_MIN, KEY_MAX, START_KEYS);
 	}
 
 	@Override
