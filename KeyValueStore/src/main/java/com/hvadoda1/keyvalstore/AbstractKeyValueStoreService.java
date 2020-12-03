@@ -331,7 +331,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		if (this.nodes != null)
 			throw new RuntimeException(
 					"Cluster nodes list already set, attempt to reset the list (Please restart the cluster to set list of nodes again)");
-		if (this.nodes == null)
+		if (nodes == null)
 			return;
 		try (FileWriter fw = FileUtils.fileAppender(new File(nodesListFilename));) {
 			ISerializer<List<N>> listSerializer = SerializerFactory.getSimpleSerializer(true);
