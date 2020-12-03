@@ -120,7 +120,7 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 					int n = Integer.parseInt(str);
 					if (n < 1 || n > levels.length)
 						throw new RuntimeException("Enter a valid number between 1 and " + levels.length);
-					return levels[n];
+					return levels[n - 1];
 				} catch (NumberFormatException e) {
 					throw new RuntimeException(str + " is not a valid number");
 				}
@@ -170,7 +170,7 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 						(N) params.get("node"));) {
 					System.out.println("Value: " + client.get((int) params.get("key"), (Con) params.get("level")));
 				} catch (Exception e) {
-					e.printStackTrace();
+					System.err.println("Error: " + e.getMessage());
 				}
 				return true;
 			}));
