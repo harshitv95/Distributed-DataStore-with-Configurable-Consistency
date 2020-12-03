@@ -15,7 +15,7 @@ public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 
 	protected static int[] createStartKeys(int keyMin, int keyMax, int numNodes) {
 		int[] startKeys = new int[numNodes];
-		int incFactor = (keyMax - keyMin) / numNodes;
+		int incFactor = (keyMax + 1 - keyMin) / numNodes;
 		for (int i = 0; i < numNodes; i++)
 			startKeys[i] = keyMin + (i * incFactor);
 		return startKeys;

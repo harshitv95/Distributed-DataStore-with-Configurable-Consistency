@@ -6,7 +6,7 @@ import java.util.Map;
 
 import org.apache.thrift.TException;
 import org.apache.thrift.server.TServer;
-import org.apache.thrift.server.TSimpleServer;
+import org.apache.thrift.server.TThreadPoolServer;
 import org.apache.thrift.transport.TServerSocket;
 import org.apache.thrift.transport.TServerTransport;
 import org.apache.thrift.transport.TTransportException;
@@ -36,7 +36,7 @@ public class ThriftServiceStarter
 	}
 
 	protected TServer setupServer(int port) throws TTransportException {
-		return new TSimpleServer(new TServer.Args(getTransport(port)).processor(processor));
+		return new TThreadPoolServer(new TThreadPoolServer.Args(getTransport(port)).processor(processor));
 	}
 
 	protected TServerTransport getTransport(int port) throws TTransportException {
