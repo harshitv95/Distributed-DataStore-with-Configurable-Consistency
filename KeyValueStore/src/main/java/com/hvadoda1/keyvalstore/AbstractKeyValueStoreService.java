@@ -67,8 +67,6 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 				ex.printStackTrace();
 			}
 		}
-		if (nodes == null)
-			recoverLastSavedState();
 
 		try {
 			this.writeAheadLogger = FileUtils.fileAppender(new File(backupFilename), false);
@@ -76,6 +74,9 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 			throw new RuntimeException(
 					"Failed to initialize write-ahead-logging. (Log filename: [" + backupFilename + "])", e);
 		}
+
+		if (nodes == null)
+			recoverLastSavedState();
 	}
 
 	public void recoverLastSavedState() {
