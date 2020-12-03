@@ -210,7 +210,9 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 					Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
 				}
 		Logger.info("Final [" + key + "]->[" + valueToStr(v) + "]");
-		return v == null ? null : v.getValue();
+		if (v == null)
+			throw createException("Key [" + key + "] not found");
+		return v.getValue();
 	}
 
 	@Override

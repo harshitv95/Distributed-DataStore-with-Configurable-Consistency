@@ -63,6 +63,7 @@ public class KeyValueStoreServiceThrift
 
 	@Override
 	protected TException createException(String message) {
+		Logger.error(message, null);
 		SystemException se = new SystemException();
 		se.message = message;
 		return se;
@@ -70,9 +71,9 @@ public class KeyValueStoreServiceThrift
 
 	@Override
 	protected TException createException(String message, Exception cause) {
-		Logger.error(message, cause);
 		if (cause == null)
 			return createException(message);
+		Logger.error(message, cause);
 		SystemException se = new SystemException();
 		se.message = message + " (" + cause.getMessage() + ")";
 		se.initCause(cause);
