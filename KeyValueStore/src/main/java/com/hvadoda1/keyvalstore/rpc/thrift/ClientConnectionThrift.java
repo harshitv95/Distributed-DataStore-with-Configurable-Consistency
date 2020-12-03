@@ -45,6 +45,7 @@ public class ClientConnectionThrift
 	@Override
 	public void close() {
 		try {
+			Logger.debugHigh("Closing connection to [" + NodeUtils.nodeAddress(node) + "]");
 			transport.close();
 		} catch (Exception e) {
 			Logger.error("Exception while closing connection to client [" + NodeUtils.nodeAddress(node) + "]", e);

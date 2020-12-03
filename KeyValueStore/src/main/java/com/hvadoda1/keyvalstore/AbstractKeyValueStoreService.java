@@ -128,16 +128,17 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 							}
 						});
 					}
+					if (connCache != null)
+						try {
+							connCache.close();
+							connCache = null;
+						} catch (IOException e) {
+						}
 				} catch (Exception e) {
 					e.printStackTrace();
 					continue;
 				}
 			}
-			if (connCache != null)
-				try {
-					connCache.close();
-				} catch (IOException e) {
-				}
 			recovered = true;
 		}
 
