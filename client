@@ -16,11 +16,11 @@ echo "" >> Manifest.mf
 #cp $RES_DIR/* ./bin
 
 cd bin/
-jar cmf ../Manifest.mf ../server.jar com/ #*.properties
+jar cmf ../Manifest.mf ../client.jar com/ #*.properties
 
 cd ..
 rm -f Manifest.mf
 rm -f sources.txt
 rm -rf bin
 
-java -jar server.jar ${@}
+java -jar client.jar ${@}
