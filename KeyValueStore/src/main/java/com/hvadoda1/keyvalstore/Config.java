@@ -61,7 +61,7 @@ public class Config {
 		}
 
 		Level logLevel = Level.from(Integer.parseInt(args.getOrDefault("level", "3")));
-		String logFilename = "logs" + File.separator + "log_" + (DateTimeUtils.getLogFileNameDateString()) + ".txt";
+		String logFilename = "logs" + File.separator + "log_" + (DateTimeUtils.logFileNameDateString()) + ".txt";
 		try {
 			new Logger(logLevel, "com.hvadoda1.keyvalstore", logFilename, args.get("port"), true);
 		} catch (IOException e) {

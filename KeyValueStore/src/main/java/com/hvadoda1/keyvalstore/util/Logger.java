@@ -8,7 +8,6 @@ import java.io.IOException;
 import java.net.InetAddress;
 import java.net.UnknownHostException;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -130,7 +129,8 @@ public class Logger implements AutoCloseable {
 
 	protected String logMessagePrefix(Level level) {
 		String caller = getCaller();
-		return String.format("[%s][%s][%s][%s] ", new Date(), level, this.hostAddress, caller != null ? caller : "-");
+		return String.format("[%s][%s][%s][%s] ", DateTimeUtils.logDateTimeString(), level, this.hostAddress,
+				caller != null ? caller : "-");
 	}
 
 	protected String printAll(Object[] args) {
