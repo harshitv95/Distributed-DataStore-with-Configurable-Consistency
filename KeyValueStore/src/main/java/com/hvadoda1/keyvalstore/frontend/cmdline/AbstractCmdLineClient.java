@@ -95,8 +95,7 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 		public void run() {
 			if (task != null) {
 				try {
-					Map<String, Object> inputs = inputs();
-					while (!task.apply(inputs))
+					while (!task.apply(inputs()))
 						;
 				} catch (Exception e) {
 					e.printStackTrace();
@@ -168,7 +167,8 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 				}
 			}, params -> {
 				try {
-					getFrontEndClient((N) params.get("node")).get((int) params.get("key"), (Con) params.get("level"));
+					System.out.println("Value: " + getFrontEndClient((N) params.get("node"))
+							.get((int) params.get("key"), (Con) params.get("level")));
 				} catch (Exception e) {
 					e.printStackTrace();
 				}
