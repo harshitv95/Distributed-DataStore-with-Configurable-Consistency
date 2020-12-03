@@ -99,10 +99,12 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		}
 
 		backup = new File(nodesListFilename);
-		if (backup.exists() && backup.isFile()) {
+		if (backup.isFile()) {
 			ISerializer<List<N>> listSerializer = SerializerFactory.getSimpleSerializer(true);
 			try {
 				String contents = FileUtils.readFile(backup);
+				if (contents == null || contents.isEmpty())
+					return;
 				this.nodes = listSerializer.deserialize(contents);
 			} catch (ClassNotFoundException | IOException e) {
 				throw new RuntimeException("Failed to recover previously backed up Nodes list", e);
@@ -307,6 +309,8 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	protected void writeAheadLog(Entry<K, Val> entry) throws Exc {
 		try {
 			this.writeAheadLogger.write(serializer.serialize(entry));
+			this.writeAheadLogger.write(System.lineSeparator());
+			this.writeAheadLogger.flush();
 			entryCount++;
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to write/update value, due to failure in write-ahead-logging");
@@ -327,8 +331,12 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		if (this.nodes != null)
 			throw new RuntimeException(
 					"Cluster nodes list already set, attempt to reset the list (Please restart the cluster to set list of nodes again)");
-		try {
-			FileUtils.fileAppender(new File(nodesListFilename));
+		if (this.nodes == null)
+			return;
+		try (FileWriter fw = FileUtils.fileAppender(new File(nodesListFilename));) {
+			ISerializer<List<N>> listSerializer = SerializerFactory.getSimpleSerializer(true);
+			fw.write(listSerializer.serialize(nodes));
+			fw.flush();
 		} catch (IOException e) {
 			throw new RuntimeException("Failed to set nodes list, due to failure in logging the list");
 		}
