@@ -168,58 +168,61 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 	}
 
 	protected V readFromReplicas(K key, int numReplicasToContact) throws Exc {
-		int idx = getPartitioner().indexOfResponsibleNode(key);
-		Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
-		if (idx == -1) {
-			throw new RuntimeException("Invalid key [" + key + "]");
-		}
-		Val v = null, v1;
-
-		Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
 		List<IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> conns = new ArrayList<>();
-		int maxConfiguredReplicaCount = Config.numReplicas();
-		String nodeAddress;
-		while (maxConfiguredReplicaCount-- > 0 && replicas.size() < numReplicasToContact) {
-			nodeAddress = NodeUtils.nodeAddress(nodes.get(idx));
-			try {
-				Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
-				replicas.put(nodes.get(idx), this.getClientConnection(nodes.get(idx)));
-				conns.add(connCache);
-				Logger.debugLow("Replica [" + nodeAddress + "] available");
-			} catch (Exception e) {
-				Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
+		try {
+			int idx = getPartitioner().indexOfResponsibleNode(key);
+			Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
+			if (idx == -1) {
+				throw new RuntimeException("Invalid key [" + key + "]");
 			}
-			connCache = null;
-			idx++;
-			idx %= nodes.size();
-		}
+			Val v = null, v1;
 
-		if (replicas.size() < numReplicasToContact)
-			throw new RuntimeException("Failed to process read request, only [" + replicas.size()
-					+ "] out of the minimum required [" + numReplicasToContact + "] replicas were available");
-
-		for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet()) {
-			try {
-				v1 = replica.getValue().read(key);
-			} catch (Exception e) {
-				v1 = null;
-			}
-			Logger.debugLow(
-					"Client [" + replica.getValue().getRemoteNode() + "] [" + key + "]->[" + valueToStr(v1) + "]");
-			if (shouldOverwrite(v, v1))
-				v = v1;
-		}
-		for (IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> conn : conns)
-			if (conn != null)
+			Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
+			int maxConfiguredReplicaCount = Config.numReplicas();
+			String nodeAddress;
+			while (maxConfiguredReplicaCount-- > 0 && replicas.size() < numReplicasToContact) {
+				nodeAddress = NodeUtils.nodeAddress(nodes.get(idx));
 				try {
-					conn.close();
-				} catch (IOException e) {
-					Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
+					Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
+					replicas.put(nodes.get(idx), this.getClientConnection(nodes.get(idx)));
+					conns.add(connCache);
+					Logger.debugLow("Replica [" + nodeAddress + "] available");
+				} catch (Exception e) {
+					Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
 				}
-		Logger.info("Final [" + key + "]->[" + valueToStr(v) + "]");
-		if (v == null)
-			throw createException("Key [" + key + "] not found");
-		return v.getValue();
+				connCache = null;
+				idx++;
+				idx %= nodes.size();
+			}
+
+			if (replicas.size() < numReplicasToContact)
+				throw new RuntimeException("Failed to process read request, only [" + replicas.size()
+						+ "] out of the minimum required [" + numReplicasToContact + "] replicas were available");
+
+			for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet()) {
+				try {
+					v1 = replica.getValue().read(key);
+				} catch (Exception e) {
+					v1 = null;
+				}
+				Logger.debugLow(
+						"Client [" + replica.getValue().getRemoteNode() + "] [" + key + "]->[" + valueToStr(v1) + "]");
+				if (shouldOverwrite(v, v1))
+					v = v1;
+			}
+			Logger.info("Final [" + key + "]->[" + valueToStr(v) + "]");
+			if (v == null)
+				throw createException("Key [" + key + "] not found");
+			return v.getValue();
+		} finally {
+			for (IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> conn : conns)
+				if (conn != null)
+					try {
+						conn.close();
+					} catch (IOException e) {
+						Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
+					}
+		}
 	}
 
 	@Override
@@ -247,55 +250,57 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 
 	protected void writeToReplicas(K key, V value, int minReplicas, int maxReplicas, boolean shouldSaveHints)
 			throws Exc {
-		Val valueWrpr = createValue(value);
-		int idx = getPartitioner().indexOfResponsibleNode(key);
-		Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
-		Logger.info("Primary Replica for Key [" + key + "] : [" + NodeUtils.nodeAddress(nodes.get(idx)) + "]");
-		if (idx == -1)
-			throw new RuntimeException("Invalid key [" + key + "]");
-
-		Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
 		List<IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc>> conns = new ArrayList<>();
-		int availableReplicas = 0;
-		IKeyValueStoreClient<K, V, N, Val, Con, Exc> client;
-		int maxConfiguredReplicaCount = Config.numReplicas();
-		String nodeAddress;
-		while (maxConfiguredReplicaCount-- > 0 && availableReplicas < maxReplicas) {
-			nodeAddress = NodeUtils.nodeAddress(nodes.get(idx));
-			try {
-				Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
-				client = this.getClientConnection(nodes.get(idx));
-				availableReplicas++;
-				conns.add(connCache);
-				Logger.debugLow("Replica [" + nodeAddress + "] available");
-			} catch (Exception e) {
-				client = null;
-				Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
-			}
-			connCache = null;
-			if (client != null || shouldSaveHints)
-				replicas.put(nodes.get(idx), client);
-			idx++;
-			idx %= nodes.size();
-		}
+		try {
+			Val valueWrpr = createValue(value);
+			int idx = getPartitioner().indexOfResponsibleNode(key);
+			Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
+			Logger.info("Primary Replica for Key [" + key + "] : [" + NodeUtils.nodeAddress(nodes.get(idx)) + "]");
+			if (idx == -1)
+				throw new RuntimeException("Invalid key [" + key + "]");
 
-		if (availableReplicas < minReplicas)
-			throw new RuntimeException("Failed to process write request, only [" + availableReplicas
-					+ "] out of the minimum required [" + minReplicas + "] replicas were available");
-
-		for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet())
-			if (replica.getValue() == null)
-				missedWrites.saveMissedWrite(replica.getKey(), key, valueWrpr);
-			else
-				replica.getValue().write(key, valueWrpr);
-
-		for (IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> conn : conns)
-			if (conn != null)
+			Map<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replicas = new HashMap<>();
+			int availableReplicas = 0;
+			IKeyValueStoreClient<K, V, N, Val, Con, Exc> client;
+			int maxConfiguredReplicaCount = Config.numReplicas();
+			String nodeAddress;
+			while (maxConfiguredReplicaCount-- > 0 && availableReplicas < maxReplicas) {
+				nodeAddress = NodeUtils.nodeAddress(nodes.get(idx));
 				try {
-					conn.close();
-				} catch (IOException e) {
-					Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
+					Logger.debugLow("Connecting to replica [" + nodeAddress + "]");
+					client = this.getClientConnection(nodes.get(idx));
+					availableReplicas++;
+					conns.add(connCache);
+					Logger.debugLow("Replica [" + nodeAddress + "] available");
+				} catch (Exception e) {
+					client = null;
+					Logger.debugLow("Replica [" + nodeAddress + "] NOT available");
 				}
+				connCache = null;
+				if (client != null || shouldSaveHints)
+					replicas.put(nodes.get(idx), client);
+				idx++;
+				idx %= nodes.size();
+			}
+
+			if (availableReplicas < minReplicas)
+				throw new RuntimeException("Failed to process write request, only [" + availableReplicas
+						+ "] out of the minimum required [" + minReplicas + "] replicas were available");
+
+			for (Map.Entry<N, IKeyValueStoreClient<K, V, N, Val, Con, Exc>> replica : replicas.entrySet())
+				if (replica.getValue() == null)
+					missedWrites.saveMissedWrite(replica.getKey(), key, valueWrpr);
+				else
+					replica.getValue().write(key, valueWrpr);
+		} finally {
+			for (IKeyValueStoreClientConnection<K, V, N, Val, Con, Exc> conn : conns)
+				if (conn != null)
+					try {
+						conn.close();
+					} catch (IOException e) {
+						Logger.error("Exception while closing connection to client [" + conn.getRemoteNode() + "]", e);
+					}
+		}
 	}
 
 	@Override
