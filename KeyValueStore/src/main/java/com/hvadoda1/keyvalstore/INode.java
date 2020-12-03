@@ -1,6 +1,8 @@
 package com.hvadoda1.keyvalstore;
 
-public interface INode {
+import java.io.Serializable;
+
+public interface INode extends Serializable {
 
 	/**
 	 * @return IP Address of current Node in String format

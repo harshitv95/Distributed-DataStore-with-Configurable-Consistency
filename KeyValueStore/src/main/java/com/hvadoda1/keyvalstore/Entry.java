@@ -1,6 +1,13 @@
 package com.hvadoda1.keyvalstore;
 
-public class Entry<K, V> {
+import java.io.Serializable;
+
+public class Entry<K, V> implements Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -191160979270409831L;
 
 	private final K key;
 	private final V value;
