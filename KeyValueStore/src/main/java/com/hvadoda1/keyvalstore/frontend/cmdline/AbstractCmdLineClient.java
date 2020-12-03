@@ -25,11 +25,32 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 
 	final static BufferedReader br = new BufferedReader(new InputStreamReader(System.in));
 
-	public AbstractCmdLineClient() {
+	protected final Function<String, N> addrToNode = str -> {
+		String spl[] = str.split(":");
+		if (spl.length != 2)
+			throw new RuntimeException(str + " is not a valid IP:port string");
+		int port;
+		try {
+			port = Integer.parseInt(spl[1]);
+			if (port < 0 || port > 65535)
+				throw new RuntimeException(spl[1] + " is not a valid port number");
+		} catch (NumberFormatException e) {
+			throw new RuntimeException(spl[1] + " is not a valid port number");
+		}
+		return createNode(spl[0], port);
+	};
 
+	protected final N coordinator;
+
+	public AbstractCmdLineClient(Map<String, String> params) {
+		if (params.containsKey("coord"))
+			this.coordinator = addrToNode.apply(params.get("coord"));
+		else
+			coordinator = null;
 	}
 
 	public void start() {
+		List<CmdLineAction> clientActions = clientActions();
 		new CmdLineAction("main", new ArrayList<>() {
 			private static final long serialVersionUID = 1L;
 			{
@@ -107,7 +128,8 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 		protected Map<String, Object> inputs() {
 			Map<String, Object> inputs = new HashMap<>();
 			for (GetInput<?> getIn : inputGetters)
-				inputs.put(getIn.name(), getIn.get());
+				if (getIn != null)
+					inputs.put(getIn.name(), getIn.get());
 			return inputs;
 		}
 
@@ -127,86 +149,77 @@ public abstract class AbstractCmdLineClient<N extends INode, Val extends IValue<
 			});
 
 	final GetInput<N> getNode = new GetInput<N>("node", "Enter address (ip:port) of coordinator node to connect:",
-			str -> {
-				String spl[] = str.split(":");
-				if (spl.length != 2)
-					throw new RuntimeException(str + " is not a valid IP:port string");
-				int port;
-				try {
-					port = Integer.parseInt(spl[1]);
-					if (port < 0 || port > 65535)
-						throw new RuntimeException(spl[1] + " is not a valid port number");
-				} catch (NumberFormatException e) {
-					throw new RuntimeException(spl[1] + " is not a valid port number");
-				}
-				return createNode(spl[0], port);
-			});
+			addrToNode);
 
+//	@SuppressWarnings("unchecked")
+//	List<CmdLineAction> clientActions = 
 	@SuppressWarnings("unchecked")
-	List<CmdLineAction> clientActions = new ArrayList<>() {
-		private static final long serialVersionUID = 1L;
+	protected List<CmdLineAction> clientActions() {
+		return new ArrayList<>() {
+			private static final long serialVersionUID = 1L;
 
-		{
-			add(new CmdLineAction("get", new ArrayList<>() {
-				private static final long serialVersionUID = 1L;
+			{
+				add(new CmdLineAction("get", new ArrayList<>() {
+					private static final long serialVersionUID = 1L;
 
-				{
-					add(new GetInput<Integer>("key", "Key:", (str) -> {
-						try {
-							int n = Integer.parseInt(str);
-							return n;
-						} catch (NumberFormatException e) {
-							throw new RuntimeException(str + " is not a valid number");
-						}
-					}));
+					{
+						add(new GetInput<Integer>("key", "Key:", (str) -> {
+							try {
+								int n = Integer.parseInt(str);
+								return n;
+							} catch (NumberFormatException e) {
+								throw new RuntimeException(str + " is not a valid number");
+							}
+						}));
 
-					add(getConsistencyLevel);
+						add(getConsistencyLevel);
 
-					add(getNode);
+						add(coordinator != null ? null : getNode);
 
-				}
-			}, params -> {
-				try (AbstractFrontEndClient<Integer, String, N, Val, Con, Ex> client = getFrontEndClient(
-						(N) params.get("node"));) {
-					System.out.println("Value: " + client.get((int) params.get("key"), (Con) params.get("level")));
-				} catch (Exception e) {
-					System.err.println("Error: " + e.getMessage());
-				}
-				return true;
-			}));
+					}
+				}, params -> {
+					try (AbstractFrontEndClient<Integer, String, N, Val, Con, Ex> client = getFrontEndClient(
+							(N) params.get("node"));) {
+						System.out.println("Value: " + client.get((int) params.get("key"), (Con) params.get("level")));
+					} catch (Exception e) {
+						System.err.println("Error: " + e.getMessage());
+					}
+					return true;
+				}));
 
-			add(new CmdLineAction("put", new ArrayList<>() {
-				private static final long serialVersionUID = 1L;
+				add(new CmdLineAction("put", new ArrayList<>() {
+					private static final long serialVersionUID = 1L;
 
-				{
-					add(new GetInput<Integer>("key", "Key:", (str) -> {
-						try {
-							int n = Integer.parseInt(str);
-							return n;
-						} catch (NumberFormatException e) {
-							throw new RuntimeException(str + " is not a valid number");
-						}
-					}));
+					{
+						add(new GetInput<Integer>("key", "Key:", (str) -> {
+							try {
+								int n = Integer.parseInt(str);
+								return n;
+							} catch (NumberFormatException e) {
+								throw new RuntimeException(str + " is not a valid number");
+							}
+						}));
 
-					add(new GetInput<String>("value", "Value:", str -> str));
+						add(new GetInput<String>("value", "Value:", str -> str));
 
-					add(getConsistencyLevel);
+						add(getConsistencyLevel);
 
-					add(getNode);
+						add(coordinator != null ? null : getNode);
 
-				}
-			}, params -> {
-				try (AbstractFrontEndClient<Integer, String, N, Val, Con, Ex> client = getFrontEndClient(
-						(N) params.get("node"));) {
-					client.put((int) params.get("key"), (String) params.get("value"), (Con) params.get("level"));
-				} catch (Exception e) {
-					e.printStackTrace();
-				}
-				return true;
-			}));
+					}
+				}, params -> {
+					try (AbstractFrontEndClient<Integer, String, N, Val, Con, Ex> client = getFrontEndClient(
+							(N) params.get("node"));) {
+						client.put((int) params.get("key"), (String) params.get("value"), (Con) params.get("level"));
+					} catch (Exception e) {
+						e.printStackTrace();
+					}
+					return true;
+				}));
 
-		}
-	};
+			}
+		};
+	}
 
 	protected String consistencyLevelPrompts() {
 		IConsistencyLevel[] levels = getLevels();
