@@ -14,7 +14,6 @@ import com.hvadoda1.keyvalstore.rpc.thrift.generated.ConsistencyLevel;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.KeyValueStore;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Node;
 import com.hvadoda1.keyvalstore.rpc.thrift.generated.Value;
-import com.hvadoda1.keyvalstore.util.Logger;
 import com.hvadoda1.keyvalstore.util.NodeUtils;
 
 public class ClientConnectionThrift
@@ -45,10 +44,12 @@ public class ClientConnectionThrift
 	@Override
 	public void close() {
 		try {
-			Logger.debugHigh("Closing connection to [" + NodeUtils.nodeAddress(node) + "]");
+//			Logger.debugHigh("Closing connection to [" + NodeUtils.nodeAddress(node) + "]");
 			transport.close();
 		} catch (Exception e) {
-			Logger.error("Exception while closing connection to client [" + NodeUtils.nodeAddress(node) + "]", e);
+			System.err.println("Exception while closing connection to client [" + NodeUtils.nodeAddress(node) + "]:\n"
+					+ e.getMessage());
+//			Logger.error("Exception while closing connection to client [" + NodeUtils.nodeAddress(node) + "]", e);
 		}
 	}
 

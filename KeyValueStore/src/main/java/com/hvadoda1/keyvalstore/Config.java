@@ -34,20 +34,29 @@ public class Config {
 
 	protected final Map<String, String> args;
 
+	protected final boolean isServer;
+
 	public Config(Map<String, String> params) {
+		this(params, true);
+	}
+
+	public Config(Map<String, String> params, boolean server) {
 		if (instance != null)
 			throw new RuntimeException("Config already initialized");
-		args = params;
+		this.args = params;
+		this.isServer = server;
 		instance = this;
-		init();
+		this.init();
 	}
 
 	@SuppressWarnings("resource")
 	protected void init() {
-		String missingParam;
-		if ((missingParam = requiredParams.stream().filter(param -> !args.containsKey(param)).findAny()
-				.orElse(null)) != null)
-			throw new RuntimeException("Required argument [" + missingParam + "] was not provided");
+		if (this.isServer) {
+			String missingParam;
+			if ((missingParam = requiredParams.stream().filter(param -> !args.containsKey(param)).findAny()
+					.orElse(null)) != null)
+				throw new RuntimeException("Required argument [" + missingParam + "] was not provided");
+		}
 
 		int n;
 		if (!CommonUtils.isInt(args.get("port")) || ((n = Integer.parseInt(args.get("port"))) < 0 || n > 65535))
