@@ -1,5 +1,7 @@
 package com.hvadoda1.keyvalstore.frontend.cmdline;
 
+import java.util.Map;
+
 import org.apache.thrift.TException;
 
 import com.hvadoda1.keyvalstore.frontend.AbstractFrontEndClient;
@@ -10,6 +12,10 @@ import com.hvadoda1.keyvalstore.rpc.thrift.generated.Value;
 import com.hvadoda1.keyvalstore.util.NodeUtils;
 
 public class ThriftCmdLineClient extends AbstractCmdLineClient<Node, Value, ConsistencyLevel, TException> {
+
+	public ThriftCmdLineClient(Map<String, String> params) {
+		super(params);
+	}
 
 	@Override
 	protected ConsistencyLevel[] getLevels() {
