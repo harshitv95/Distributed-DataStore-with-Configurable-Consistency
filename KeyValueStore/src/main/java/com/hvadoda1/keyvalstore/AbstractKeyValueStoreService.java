@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 import com.hvadoda1.keyvalstore.util.FileUtils;
 import com.hvadoda1.keyvalstore.util.Logger;
@@ -54,15 +55,18 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		this.serializer = SerializerFactory.getSimpleSerializer();
 
 		if (Config.args().containsKey("nodes")) {
+			Logger.debugLow("Nodes filename found: [" + Config.getArg("nodes") + "]");
 			try {
-				nodes = NodeUtils.getNodesFromFile(new File(Config.getArg("nodes")),
-						(ip, port) -> createNode(ip, port));
+				setNeighborList(NodeUtils.getNodesFromFile(new File(Config.getArg("nodes")),
+						(ip, port) -> createNode(ip, port)));
+				Logger.debugLow("Nodes read from nodes file: ["
+						+ nodes.stream().map(n -> NodeUtils.nodeAddress(n)).collect(Collectors.joining(", ")) + "]");
 				recovered = true;
-			} catch (IOException ex) {
+			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
 		}
-		if (!recovered)
+		if (nodes == null)
 			recoverLastSavedState();
 
 		try {
@@ -126,6 +130,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 					continue;
 				}
 			}
+			recovered = true;
 		}
 
 	}
