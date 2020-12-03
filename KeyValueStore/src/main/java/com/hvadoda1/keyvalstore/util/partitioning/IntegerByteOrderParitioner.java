@@ -1,5 +1,9 @@
 package com.hvadoda1.keyvalstore.util.partitioning;
 
+import java.util.Arrays;
+
+import com.hvadoda1.keyvalstore.util.Logger;
+
 public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 
 	private final int keyMin, keyMax;
@@ -12,7 +16,7 @@ public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 	protected static int[] createStartKeys(int keyMin, int keyMax, int numNodes) {
 		int[] startKeys = new int[numNodes];
 		int incFactor = (keyMax - keyMin) / numNodes;
-		for (int i = 0; i < keyMax; i++)
+		for (int i = 0; i < numNodes; i++)
 			startKeys[i] = keyMin + (i * incFactor);
 		return startKeys;
 	}
@@ -21,6 +25,8 @@ public class IntegerByteOrderParitioner extends ByteOrderPartitioner<Integer> {
 		this.keyMin = keyMin;
 		this.keyMax = keyMax;
 		this.startKeys = startKeys;
+		Logger.debugHigh("Initialized IntByteOrdPart: {min: " + keyMin + ", max: " + keyMax + ", startKeys: "
+				+ Arrays.toString(startKeys) + "}");
 	}
 
 	@Override
