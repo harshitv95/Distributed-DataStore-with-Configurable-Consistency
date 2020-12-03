@@ -243,6 +243,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 		Val valueWrpr = createValue(value);
 		int idx = getPartitioner().indexOfResponsibleNode(key);
 		Logger.debugLow("indexOfPrimaryReplica(" + key + ") : [" + idx + "]");
+		Logger.info("Primary Replica for Key [" + key + "] : [" + NodeUtils.nodeAddress(nodes.get(idx)) + "]");
 		if (idx == -1)
 			throw new RuntimeException("Invalid key [" + key + "]");
 
@@ -368,7 +369,7 @@ public abstract class AbstractKeyValueStoreService<K, V, N extends INode, Val ex
 			} catch (IOException e) {
 			}
 
-		Logger.debugLow("Connecting to client [" + node + "]");
+		Logger.debugHigh("Connecting to client [" + node + "]");
 		connCache = createConnection(node);
 		return connCache.getClient();
 	}
