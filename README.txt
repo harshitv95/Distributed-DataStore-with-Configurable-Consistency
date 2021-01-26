@@ -1,11 +1,20 @@
 Distributed Key Value Store with Confiurable Consistency : Using Apache Thrift RPC Framework
 - Harshit Vadodaria (harshitv95@gmail.com)
 
-A very generic Cassandra-like Database project structure (interfaces and abstract classes) that supports RPC.
+Similar to Facebook's Cassanda Database, this is a custom implementation of a Distributed Key
+value store following the same principles as Cassandra like
+	- Configurable Consistency,
+	- Hinted Handoffs,
+	- Memtables,
+	- Write-Ahead Logging (for failure recovery),
+and is a always-availability Data Store, with great Performance.
 
-Includes a simple implementation, using Apache Thrift RPC Framework.
+Features a very generic Cassandra-like Database project structure (interfaces and abstract classes)
+that supports RPC. Any RPC framework would work with this project, including (but not limited to)
+Apache Thrift, ggRPC, Avro, Java RMI, Protobuf, REST and SOAP APIs etc.
 
-This project can be extended to work with any other RPC Framework (gRPC, Avro, Java RMI, REST and SOAP APIs etc.)
+This project includes a simple implementation using Apache Thrift RPC Framework, but it can be
+extended to work with any other RPC Framework.
 
 Steps to build and run:
 The executable 'server' can be used to build and execute a KeyValue Store Server.
